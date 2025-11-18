@@ -23,8 +23,8 @@ function SelectRole() {
   const [role, setRole] = useState("");
 
   return (
-    <div className="bg-gray-950  flex flex-col items-center justify-center h-full">
-      <div className="bg-gray-900 gap-4 p-10 rounded-xl border-1 border-gray-700 flex flex-col justify-center items-center">
+    <div className="bg-background  flex flex-col items-center justify-center h-full">
+      <div className="bg-card gap-4 p-10 rounded-xl border-2 border-border flex flex-col justify-center items-center">
         <Select onValueChange={setRole}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Selecione um cargo" />

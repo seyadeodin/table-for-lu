@@ -24,7 +24,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="p-4 flex items-center bg-gray-800 text-white shadow-lg justify-between">
+      <header className="py-4 px-16 flex items-center bg-secondary text-white shadow-lg justify-between">
         <button
           onClick={() => setIsOpen(true)}
           className="p-2 hover:bg-gray-700 rounded-lg transition-colors"

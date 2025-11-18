@@ -9,7 +9,7 @@ export const Route = createFileRoute("/sign-in")({
 function SignIn() {
   const { signIn, signOut } = useAuthActions();
   return (
-    <div className="bg-zinc-800  w-full h-screen flex justify-center items-center">
+    <div className="bg-background  w-full h-screen flex justify-center items-center">
       <Button
         className="px-8"
         type="button"
