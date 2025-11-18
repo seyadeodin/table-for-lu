@@ -13,8 +13,10 @@ import {
   X,
 } from 'lucide-react'
 import AuthButton from './AuthButton'
+import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 
 export default function Header() {
+  useAuthRedirect();
   const [isOpen, setIsOpen] = useState(false)
   const [groupedExpanded, setGroupedExpanded] = useState<
     Record<string, boolean>
