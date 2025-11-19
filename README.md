@@ -46,7 +46,7 @@ A proximidade entre o código de back e front-end permite que alterações sejam
 ## Screenshots
 <div style="display: flex; flex-wrap: wrap; gap: 10px;"> 
     <img src="./public/images/2025-11-18_21-28.png" alt="Tela Principal" width="500" />
-    <img src="./public/images/2025-11-18_21-28_1.png.png" alt="Formulário de Reserva" width="500" />
-    <img src="./public/images/2025-11-18_21-29_1.png.png" alt="Dashboard" width="500" /> 
-    <img src="./public/images/2025-11-18_21-29.png.png" alt="Detalhes da Reserva" width="500" /> 
+    <img src="./public/images/2025-11-18_21-28_1.png" alt="Formulário de Reserva" width="500" />
+    <img src="./public/images/2025-11-18_21-29_1.png" alt="Dashboard" width="500" /> 
+    <img src="./public/images/2025-11-18_21-29.png" alt="Detalhes da Reserva" width="500" /> 
 </div>
