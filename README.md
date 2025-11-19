@@ -41,7 +41,7 @@ A proximidade entre o código de back e front-end permite que alterações sejam
 ## Instruções de execução.
 - Instalação de dependencias com `bun i`
 - Crie e adicione as chaves ao arquivo `.env.local`
-- Rode o comando `bun dev` e aceso projeto na rota `localhost:3000`
+- Rode o comando `bun dev:frontend` e acesse o projeto na rota `localhost:3000`
 
 ## Screenshots
 <div style="display: flex; flex-wrap: wrap; gap: 10px;"> 
