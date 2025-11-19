@@ -1,40 +1,30 @@
 import { useNavigate } from "@tanstack/react-router";
 import { api } from "convex/_generated/api";
-import { useConvexAuth, useQuery } from "convex/react";
-import { useEffect } from "react";
+import { useConvex, useConvexAuth } from "convex/react";
 
-export function useAuthRedirect(
-  //state: 'authenticated' | 'unauthenticated'
-  //redirectTo: string
-) {
-  const { isLoading, isAuthenticated } = useConvexAuth();
-  const navigate = useNavigate();
+export function useAuthRedirect() {
+	const navigate = useNavigate();
+	const convex = useConvex();
 
-  const user = useQuery(api.user.getMe);
+	async function redirectUser() {
+		const user = await convex.query(api.user.getMe);
 
-  useEffect(() => {
-    async function redirectUser() {
-      if (isLoading) {
-        return;
-      }
+		if (!user) {
+			return navigate({ to: "/sign-in", replace: true });
+		}
 
-      if (!isAuthenticated || !user) {
-        navigate({ to: "/sign-in", replace: true });
-        return;
-      }
+		if (!user.role) {
+			return navigate({ to: "/select-role", replace: true });
+		}
 
-      if(isAuthenticated && !user.role) {
-        navigate({ to: "/select-role", replace: true});
-        return;
-      }
+		if (user.role === "USER") {
+			return navigate({ to: "/calendar", replace: true });
+		}
 
-      if (isAuthenticated) {
-        navigate({ to: "/calendar", replace: true });
-        return;
-      }
-    }
+		if (user.role === "ADMIN") {
+			return navigate({ to: "/dashboard", replace: true });
+		}
+	}
 
-    redirectUser();
-    console.log("rodei")
-  }, [user]);
+	return { redirectUser };
 }

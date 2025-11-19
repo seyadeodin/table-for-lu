@@ -1,13 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
-import {  useAuthActions} from '@convex-dev/auth/react'
+import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute('/')({ component: App })
+export const Route = createFileRoute("/")({ component: App });
 
 function App() {
-  const { signIn } = useAuthActions();
-
-  return(
-    <div>
-    </div>
-  )
+	return <div></div>;
 }

@@ -1,171 +1,199 @@
-import { Calendar } from "@/components/ui/calendar";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { api } from "convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
 import dayjs from "dayjs";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import z from "zod";
 import { Button } from "@/components/ui/button";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "convex/_generated/api";
+import { Calendar } from "@/components/ui/calendar";
 
 const calendarSchema = z.object({
-  date: z.string().optional(),
+	date: z.string().optional(),
 });
 
 export const Route = createFileRoute("/calendar")({
-  validateSearch: (search) => calendarSchema.parse(search),
-  component: RouteComponent,
+	validateSearch: (search) => calendarSchema.parse(search),
+	component: RouteComponent,
 });
 
-const reservationSlots = [
-  {
-    key: "1",
-    from: "12:00",
-    to: "12:30",
-  },
-  {
-    key: "2",
-    from: "12:30",
-    to: "13:00",
-  },
-  {
-    key: "3",
-    from: "13:00",
-    to: "13:30",
-  },
+const SLOT_CONFIG = [
+	{
+		key: "1",
+		from: "12:00",
+		to: "12:30",
+	},
+	{
+		key: "2",
+		from: "12:30",
+		to: "13:00",
+	},
+	{
+		key: "3",
+		from: "13:00",
+		to: "13:30",
+	},
 ] as const;
 
-function getReservationTimestamps(date: string) {
-  return reservationSlots.map((item) => ({
-    key: item.key,
-    from: dayjs(`${date} ${item.from}:00`).toDate().getTime(),
-    to: dayjs(`${date} ${item.to}:00`).toDate().getTime(),
-  }));
+function getSlotTimestamps(
+	dateStr: string,
+	slot: (typeof SLOT_CONFIG)[number],
+) {
+	// Parse specifically as YYYY-MM-DD HH:mm to ensure local time consistency
+	const start = dayjs(`${dateStr} ${slot.from}`, "YYYY-MM-DD HH:mm");
+	const end = dayjs(`${dateStr} ${slot.to}`, "YYYY-MM-DD HH:mm");
+
+	return {
+		from: start.toDate().getTime(),
+		to: end.toDate().getTime(),
+	};
 }
 
 function RouteComponent() {
-  const navigate = useNavigate();
-  const params = Route.useSearch();
-  const date = params.date ?? dayjs().format("YYYY-MM-DD");
+	const navigate = useNavigate({ from: Route.fullPath });
+	const params = Route.useSearch();
+	const date = params.date ?? dayjs().format("YYYY-MM-DD");
 
-  const user = useQuery(api.user.getMe);
-  const dateReservations = useQuery(api.reserves.getDateReservations, { date });
-  const createReservation = useMutation(api.reserves.createReservation);
+	const user = useQuery(api.user.getMe);
+	const dateReservations = useQuery(api.reserves.getDateReservations, { date });
+	const createReservation = useMutation(api.reserves.createReservation);
 
-  const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
+	const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
 
-  const reservationSlotsTimestamps = getReservationTimestamps(date);
-  const otherUsersReservations = dateReservations
-    ?.filter((reservation) => user?.email !== reservation.email)
-    .reduce(
-      (acc, curr) => {
-        const key = reservationSlotsTimestamps.find(
-          (item) => item.from === curr.from,
-        )?.key;
+	const slotsData =
+		(() => {
+			if (!dateReservations || !user) return null;
 
-        if (key) acc[key] += 1;
+			return SLOT_CONFIG.map((slot) => {
+				const { from, to } = getSlotTimestamps(date, slot);
 
-        return acc;
-      },
-      { "1": 0, "2": 0, "3": 0 },
-    );
-  console.log(
-    "[LS] -> src/routes/calendar.tsx:64 -> otherUsersReservations: ",
-    otherUsersReservations,
-  );
+				const relevantReserves = dateReservations.filter(
+					(r) => r.from === from && r.to === to,
+				);
 
-  function handleChangeDate(newDate: Date) {
-    navigate({
-      search: (prev) => ({
-        ...prev,
-        date: dayjs(newDate).format("YYYY-MM-DD"),
-      }),
-    });
-  }
+				const othersCount = relevantReserves.filter(
+					(r) => r.email !== user.email,
+				).length;
+				const isBookedByMe = relevantReserves.some(
+					(r) => r.email === user.email,
+				);
+				const isFull = othersCount >= 6;
 
-  function handleSelectTime(key: string) {
-    const newSelectedTimes = [...selectedTimes];
-    const hasKey = newSelectedTimes.findIndex((item) => item === key);
-    if (hasKey === -1) {
-      if (selectedTimes.length >= 2) return;
-      newSelectedTimes.push(key);
-    } else {
-      newSelectedTimes.splice(hasKey, 1);
-    }
+				return {
+					...slot,
+					timestamp: { from, to },
+					isBookedByMe,
+					isFull,
+				};
+			});
+		})() ?? [];
 
-    setSelectedTimes(newSelectedTimes);
-  }
+	function handleChangeDate(newDate: Date | undefined) {
+		if (!newDate) return;
+		navigate({
+			search: (prev) => ({
+				...prev,
+				date: dayjs(newDate).format("YYYY-MM-DD"),
+			}),
+		});
+	}
 
-  function handleCreateReservation() {
-    const reservedPeriods = reservationSlotsTimestamps
-      .filter((item) => selectedTimes.includes(item.key))
-      .map((item) => ({
-        from: item.from,
-        to: item.to,
-      }));
+	function handleSelectTime(key: string) {
+		setSelectedTimes((prev) => {
+			const isSelected = prev.includes(key);
+			if (isSelected) {
+				return prev.filter((k) => k !== key);
+			}
+			if (prev.length >= 2) return prev;
+			return [...prev, key];
+		});
+	}
 
-    createReservation({ date, reserves: reservedPeriods, email: user?.email! });
-  }
+	async function handleCreateReservation() {
+		if (!slotsData || !user?.email) return;
 
-  function handleRemoveReservation() {
-    createReservation({ date, reserves: [], email: user?.email! });
-  }
+		const reservedPeriods = slotsData
+			.filter((item) => selectedTimes.includes(item.key))
+			.map((item) => ({
+				from: item.timestamp.from,
+				to: item.timestamp.to,
+			}));
 
-  useEffect(() => {
-    if (!dateReservations) return;
+		await createReservation({
+			date,
+			reserves: reservedPeriods,
+			email: user.email,
+		});
+		toast.success("Seus horários foram reservados com sucesso.");
+	}
 
-    const myDates = dateReservations.filter(
-      (date) => date.email === user?.email,
-    );
+	async function handleRemoveReservation() {
+    if(!user?.email) return;
 
-    const fromTime = myDates
-      .map((date) => {
-        const fromString = dayjs(date.from).format("HH:mm");
-        const available = reservationSlots.find(
-          (item) => item.from === fromString,
-        );
-        return available?.key;
-      })
-      .filter((item) => item !== undefined);
+		await createReservation({ date, reserves: [], email: user.email });
+		toast.success("Sua reserva foi removida com sucesso");
+	}
 
-    setSelectedTimes(fromTime);
-  }, [dateReservations]);
+	useEffect(() => {
+		if (!dateReservations) return;
 
-  return (
-    <div className="flex items-center h-full">
-    <div className="flex gap-16 justify-center m-auto h-[600px]">
-      <div className="flex flex-col gap-8">
-        <h3 className="text-2xl font-bold">Reserve seus períodos</h3>
-        {reservationSlots.map((item) => (
-          <Button
-            key={item.key}
-            disabled={
-              otherUsersReservations
-                ? otherUsersReservations?.[item.key] >= 6
-                : false
-            }
-            variant={selectedTimes.includes(item.key) ? "default" : "secondary"}
-            onClick={() => handleSelectTime(item.key)}
-            className="px-4"
-          >
-            {item.from} - {item.to}
-          </Button>
-        ))}
+		const myDates = dateReservations.filter(
+			(date) => date.email === user?.email,
+		);
 
-        <Button className="mt-4" onClick={() => handleCreateReservation()}>Salvar Reserva</Button>
-        <Button variant="ghost" className="-mt-4" onClick={() => handleRemoveReservation()}>Remover Reserva</Button>
-      </div>
+		const fromTime = myDates
+			.map((date) => {
+				const fromString = dayjs(date.from).format("HH:mm");
+				const available = SLOT_CONFIG.find((item) => item.from === fromString);
+				return available?.key;
+			})
+			.filter((item) => item !== undefined);
 
-      <div>
-      <Calendar
-        required
-        mode="single"
-        selected={date ? dayjs(date).add(3, "h").toDate() : new Date()}
-        onSelect={handleChangeDate}
-        className="rounded-lg border [--cell-size:--spacing(11)] md:[--cell-size:--spacing(13)]"
-        buttonVariant="ghost"
-      />
-      </div>
-    </div>
-    </div>
-  );
+		setSelectedTimes(fromTime);
+	}, [dateReservations]);
+
+	return (
+		<div className="flex items-center just h-full">
+			<div className="mt-32 md:mt-auto flex  md:flex-row flex-col-reverse gap-16 justify-center m-auto h-[600px]">
+				<div className="flex flex-col gap-8">
+					<h3 className="text-2xl font-bold">Reserve seus horários</h3>
+					{slotsData.map((item) => (
+						<Button
+							key={item.key}
+							disabled={item.isFull}
+							variant={
+								selectedTimes.includes(item.key) ? "default" : "secondary"
+							}
+							onClick={() => handleSelectTime(item.key)}
+							className="px-4"
+						>
+							{item.from} - {item.to}
+						</Button>
+					))}
+
+					<Button className="mt-4" onClick={() => handleCreateReservation()}>
+						Salvar Reserva
+					</Button>
+					<Button
+						variant="ghost"
+						className="-mt-4"
+						onClick={() => handleRemoveReservation()}
+					>
+						Remover Reserva
+					</Button>
+				</div>
+
+				<div>
+					<Calendar
+						required
+						mode="single"
+						selected={date ? dayjs(date).add(3, "h").toDate() : new Date()}
+						onSelect={handleChangeDate}
+						className="rounded-lg border [--cell-size:--spacing(9)] md:[--cell-size:--spacing(13)]"
+						buttonVariant="ghost"
+					/>
+				</div>
+			</div>
+		</div>
+	);
 }
