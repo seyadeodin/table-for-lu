@@ -36,7 +36,7 @@ export default function Dashboard() {
 	const from = dayjs().subtract(30, "day").startOf("day");
 	const to = dayjs().add(60, "day").endOf("day");
 
-	const stats = useQuery(api.reserves.getStatistics, {
+	const stats = useQuery(api.reservations.getStatistics, {
 		from: from.valueOf(),
 		to: to.valueOf(),
 	});

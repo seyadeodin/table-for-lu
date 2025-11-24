@@ -33,8 +33,8 @@ export const createReservation = mutation({
   },
   handler: async (ctx, args) => {
     const day = dayjs(args.date);
-    const dayStart = day.set("h", 0).set("m", 0).toDate().getTime();
-    const dayEnd = day.set("h", 23).set("m", 59).toDate().getTime();
+    const dayStart = day.startOf("day").valueOf();
+    const dayEnd = day.endOf("day").valueOf();
 
     const dayReserves = await ctx.db.query("reserves")
       .withIndex("by_reserve", q => q.gte("from", dayStart).lte("from", dayEnd))
@@ -52,17 +52,9 @@ export const createReservation = mutation({
         from: reserve.from,
         to: reserve.to,
       })
-
-
-    //1 check if there are slos available to that period
-    //2 delete all uses reserves froom that time period
-    //3 create a new one wiuth sent reserves
   }
 })
 
-const PREV_PERIOD = 30;
-const NEXT_PERIOD = 60;
-const PERIOD = 90;
 export const getStatistics = query({
   args: {
     from: v.number(),
@@ -104,11 +96,10 @@ export const getStatistics = query({
       const dateKey = dateObj.toISOString().split("T")[0];
       
       dailyStats.push({
-        date: dateKey, // X-axis
-        reserves: dailyCounts[dateKey] || 0, // Y-axis
+        date: dateKey,
+        reserves: dailyCounts[dateKey] || 0,
       });
 
-      // Add 1 day (86400000 ms)
       current += 86400000; 
     }
 
@@ -120,14 +111,37 @@ export const getStatistics = query({
     const weekdayStats = days.map((dayName, index) => ({
       day: dayName,
       count: weekdayCounts[index] || 0,
-      fill: "var(--color-primary)", // Optional: for custom bar colors
+      fill: "var(--color-primary)", 
     }));
 
     return {
       total: reserves.length,
-      dailyStats,   // Use with <LineChart> or <BarChart>
-      timeStats,    // Use with <BarChart>
-      weekdayStats, // Use with <RadarChart> or <BarChart>
+      dailyStats,   
+      timeStats,    
+      weekdayStats, 
     };
   },
 });
+
+
+export const getPeriodReservations = query({
+  args: {
+    month: v.string(),
+    email: v.string(),
+  },
+
+  handler: async (ctx, args) => {
+    const month = dayjs(args.month);
+    const monthStart = month.startOf("month").startOf("day").valueOf();
+    console.log("[LS] -> convex/reservations.ts:135 -> monthStart: ", monthStart)
+    const monthEnd = month.endOf("month").endOf("day").valueOf();
+    console.log("[LS] -> convex/reservations.ts:136 -> monthEnd: ", monthEnd)
+
+    const periodReservations = ctx.db.query("reserves")
+      .withIndex("by_reserve", q => q.gte("from", monthStart).lte("from", monthEnd))
+      .filter(q => q.eq(q.field("email"), args.email))
+      .collect()
+
+    return periodReservations;
+  }
+})

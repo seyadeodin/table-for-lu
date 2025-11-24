@@ -1,12 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { api } from "convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
+import { ptBR } from "date-fns/locale";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import z from "zod";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 const calendarSchema = z.object({
 	date: z.string().optional(),
@@ -54,11 +56,15 @@ function RouteComponent() {
 	const params = Route.useSearch();
 	const date = params.date ?? dayjs().format("YYYY-MM-DD");
 
-	const user = useQuery(api.user.getMe);
-	const dateReservations = useQuery(api.reserves.getDateReservations, { date });
-	const createReservation = useMutation(api.reserves.createReservation);
-
 	const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+
+	const user = useQuery(api.user.getMe);
+	const dateReservations = useQuery(api.reservations.getDateReservations, { date });
+	const  monthReservations = useQuery(api.reservations.getPeriodReservations, { month: selectedMonth.toDateString(), email: user?.email! });
+  console.log("[LS] -> src/routes/calendar.tsx:62 -> monthReservations: ", monthReservations)
+	const createReservation = useMutation(api.reservations.createReservation);
+
 
 	const slotsData =
 		(() => {
@@ -186,11 +192,34 @@ function RouteComponent() {
 				<div>
 					<Calendar
 						required
+            locale={ptBR}
 						mode="single"
+            month={selectedMonth}
+            onMonthChange={setSelectedMonth}
 						selected={date ? dayjs(date).add(3, "h").toDate() : new Date()}
 						onSelect={handleChangeDate}
 						className="rounded-lg border [--cell-size:--spacing(9)] md:[--cell-size:--spacing(13)]"
 						buttonVariant="ghost"
+            components={{
+              DayButton: ({ day, ...props  }) => {
+                const dayStart = dayjs(day.date).startOf("day").valueOf();
+                const dayEnd = dayjs(day.date).endOf("day").valueOf();
+                const dayReservations = monthReservations?.filter(reservation =>
+                reservation.from > dayStart && reservation.from < dayEnd ) ?? [];
+                const isSelectedDay = dayjs(date).isSame(day.date, "day");
+
+                return(
+                  <button {...props} className={cn(props.className, "px-4 py-3 relative", isSelectedDay && "bg-primary rounded-lg text-background")}>
+                    <span>{day.date.getDate()}</span>
+                    <div className="flex justify-between mt-1 transition-all h-1">
+                    {dayReservations.map((item) => (
+                      <div key={item._id} className="w-1 h-1 bg-chart-5 rounded-full transition-all "/>
+                    ))}
+                    </div>
+                  </button>
+                )
+              }
+            }}
 					/>
 				</div>
 			</div>
