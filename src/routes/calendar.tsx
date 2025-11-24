@@ -62,7 +62,6 @@ function RouteComponent() {
 	const user = useQuery(api.user.getMe);
 	const dateReservations = useQuery(api.reservations.getDateReservations, { date });
 	const  monthReservations = useQuery(api.reservations.getPeriodReservations, { month: selectedMonth.toDateString(), email: user?.email! });
-  console.log("[LS] -> src/routes/calendar.tsx:62 -> monthReservations: ", monthReservations)
 	const createReservation = useMutation(api.reservations.createReservation);
 
 

@@ -135,9 +135,7 @@ export const getPeriodReservations = query({
   handler: async (ctx, args) => {
     const month = dayjs(args.month);
     const monthStart = month.startOf("month").startOf("day").valueOf();
-    console.log("[LS] -> convex/reservations.ts:135 -> monthStart: ", monthStart)
     const monthEnd = month.endOf("month").endOf("day").valueOf();
-    console.log("[LS] -> convex/reservations.ts:136 -> monthEnd: ", monthEnd)
 
     const periodReservations = ctx.db.query("reserves")
       .withIndex("by_reserve", q => q.gte("from", monthStart).lte("from", monthEnd))
