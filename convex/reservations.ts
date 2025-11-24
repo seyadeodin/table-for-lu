@@ -32,6 +32,8 @@ export const createReservation = mutation({
     email: v.string(),
   },
   handler: async (ctx, args) => {
+    if(args.reserves.length > 3) throw new Error("Apenas dois períodos podem ser reservados por dia");
+
     const day = dayjs(args.date);
     const dayStart = day.startOf("day").valueOf();
     const dayEnd = day.endOf("day").valueOf();
