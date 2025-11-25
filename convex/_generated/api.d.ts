@@ -10,7 +10,7 @@
 
 import type * as auth from "../auth.js";
 import type * as http from "../http.js";
-import type * as reserves from "../reserves.js";
+import type * as reservations from "../reservations.js";
 import type * as roles from "../roles.js";
 import type * as todos from "../todos.js";
 import type * as user from "../user.js";
@@ -24,7 +24,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   http: typeof http;
-  reserves: typeof reserves;
+  reservations: typeof reservations;
   roles: typeof roles;
   todos: typeof todos;
   user: typeof user;

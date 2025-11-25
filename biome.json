@@ -27,7 +27,8 @@
 			"recommended": true,
 			"correctness": {
 				"useExhaustiveDependencies": "off",
-				"useUniqueElementIds": "off"
+				"useUniqueElementIds": "off",
+        "noNestedComponentDefinitions": "off"
 			}
 		}
 	},
